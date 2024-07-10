@@ -21,7 +21,7 @@ class RegisterStation(tk.Frame):
                 self.label = tk.Label(self, text="Station ID: " + self.config["DEVICE_UUID"], font=controller.main_font)
                 self.label.pack(side="top", fill="x", pady=10)
 
-                self.continue_button = tk.Button(self, text="Continue", font=controller.main_font, command=lambda: controller.show_frame("WelcomePage"))
+                self.continue_button = tk.Button(self, text="Continue", font=controller.main_font, command=lambda: controller.show_frame("Overview"))
                 self.continue_button.pack()
                 return
         except:
