@@ -8,7 +8,7 @@ from ui.wifiSetupSuccess import WifiSetupSuccess
 from ui.registerStation import RegisterStation
 from ui.registerStationErrorPage import RegisterStationErrorPage
 from ui.registerStationSuccess import RegisterStationSuccess
-
+from ui.overview import Overview
 
 
 class MainApp(tk.Tk):
@@ -29,7 +29,7 @@ class MainApp(tk.Tk):
         self.frames = {}
 
         # for F in (WelcomePage, WifiSetup, WifiSetupErrorPage, WifiSetupSuccess, RegisterStation, RegisterStationErrorPage):
-        for F in (WelcomePage, WifiSetup, WifiSetupErrorPage, WifiSetupSuccess, RegisterStation, RegisterStationErrorPage, RegisterStationSuccess):
+        for F in (WelcomePage, WifiSetup, WifiSetupErrorPage, WifiSetupSuccess, RegisterStation, RegisterStationErrorPage, RegisterStationSuccess, Overview):
             page_name = F.__name__
             frame = F(parent=container, controller=self)
             self.frames[page_name] = frame
@@ -53,7 +53,7 @@ class MainApp(tk.Tk):
     def create_keyboard(self):
         """Creates the virtual keyboard layout"""
         keyboard_buttons = [
-            ["!", '"', "#", "$", "%", "&", "/", "(", ")", "?"],
+            ["!", '"', "#", "$", "@", "&", "/", "(", ")", "?"],
             ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
             ["q", "w", "e", "r", "t", "z", "u", "i", "o", "p"],
             ["a", "s", "d", "f", "g", "h", "j", "k", "l", "Hide"],
@@ -103,10 +103,10 @@ class MainApp(tk.Tk):
             '"': "-",
             "#": "_",
             "$": "+",
-            "%": "=",
+            "@": "=",
             "&": "<",
             "/": ">",
-            "(": "@",
+            "(": "%",
             ")": "^",
             "?": "`",
         }
@@ -138,20 +138,20 @@ class MainApp(tk.Tk):
             '"': "-",
             "#": "_",
             "$": "+",
-            "%": "=",
+            "@": "=",
             "&": "<",
             "/": ">",
-            "(": "@",
+            "(": "%",
             ")": "^",
             "?": "`",
             "*": "!",
             "-": '"',
             "_": "#",
             "+": "$",
-            "=": "%",
+            "=": "@",
             "<": "&",
             ">": "/",
-            "@": "(",
+            "%": "(",
             "^": ")",
             "`": "?"
         }
