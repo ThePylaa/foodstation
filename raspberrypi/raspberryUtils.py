@@ -14,8 +14,18 @@ with open("/home/pi/Desktop/feedingstation/raspberrypi/config.json", "r") as fil
 api_host= config["API_HOST"]
 station_uuid = config["DEVICE_UUID"]
 user_id = config["USER_ID"]
+
+#define globals
 global dispensedPortions
 global lastScheduleRefresh
+global picam2
+
+def startPicam():
+    global picam2
+    picam2 = Picamera2()
+    picam2.configure(picam2.create_still_configuration())
+    picam2.start()
+    time.sleep(1)
 
 def updateServer():
     # Update the server with the current status of the feeding stations humidity and temperature
@@ -31,10 +41,6 @@ def updateServer():
         print("Failed to update server")
 
 def sendImage():
-    picam2 = Picamera2()
-    picam2.configure(picam2.create_still_configuration())
-    picam2.start()
-    time.sleep(1)
     data = io.BytesIO()
     picam2.capture_file(data, format='jpeg')
 
@@ -74,6 +80,7 @@ def hasInternet():
 def doRoutine(lastServerUpdate):
     print("Doing Main Routine")
     global lastScheduleRefresh
+    global dispensedPortions
 
     #the schedule will be updated every 5 minutes, also the server will get new information about the feeding station
     if getTimeInSeconds() - lastServerUpdate > 300:
@@ -111,7 +118,7 @@ def doRoutine(lastServerUpdate):
                         break
                     # If the rfid is in the schedule, dispense a portion of food if the time of the last portion["time"] is smaller than the current time
                     for portion in animal["portions"]:
-                        if getRtcDateTime().time() > datetime.strptime(portion["time"], "%H:%M:%S").time() and [portion["time"], animal["animal_rfid"]] not in dispensedPortions:
+                        if getRtcDateTime().time() > datetime.strptime(portion["time"], "%H:%M:%S").time() and [[portion["time"]], [animal["animal_rfid"]]] not in dispensedPortions:
                             print(f"Dispensing %s portions of food" % portion["size"])                               
                             dispensePortion(portion["size"])
                             #TODO, sleep has to be adjusted to the time it takes to dispense the food
@@ -120,14 +127,20 @@ def doRoutine(lastServerUpdate):
                             # tags portion as dispensed
                             dispensedPortions.append([[portion["time"]], [animal["animal_rfid"]]])
 
-                            with open("/home/pi/Desktop/feedingstation/raspberrypi/schedule.json", "w") as file:
-                                file.write(json.dumps(schedule))
-                                break    
+                            #DONT REMEMBER WHY ITS HERE MABYE NEED TO UNCOMMENT
+                            #
+                            # with open("/home/pi/Desktop/feedingstation/raspberrypi/schedule.json", "w") as file:
+                            #     file.write(json.dumps(schedule))
+                            #     break   
+                        else:
+                            print("False Time or already dispensed for " + portion["time"]) 
         
     return lastServerUpdate
 
 if __name__ == "__main__":
     # Main loop
+    startPicam()
+
     if hasInternet():
         setRtcTime()
         
