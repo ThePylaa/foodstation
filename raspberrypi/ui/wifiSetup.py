@@ -11,16 +11,18 @@ class WifiSetup(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.controller = controller
-
+        can = Canvas(self, height=480, width=800)
+        can.place(relx=0.5, rely=0.5, anchor=CENTER)
         #if already connected to a network, dont scan
         if hasInternet():
             available_networks = ["Already connected to a", "network, press", " 'Disconnect from current", "Wifi' and refresh to", "change Wifi"]
+            self.continue_button = tk.Button(can, text="Continue", command=lambda: self.controller.show_frame("RegisterStation"), pady=10, background="grey", foreground="white", font=controller.main_font)
+            self.continue_button.pack()
 
         else:
             available_networks = self.scan_wifi()
 
-        can = Canvas(self, height=480, width=800)
-        can.place(relx=0.5, rely=0.5, anchor=CENTER)
+
 
         label = tk.Label(can, text="Chose your Wifi Network:", font=controller.main_font, height=2, width=35)
         label.pack(side="top", fill="x", pady=10)
@@ -75,7 +77,7 @@ class WifiSetup(tk.Frame):
 
 
         # button to connect to the selected network
-        connect_button = tk.Button(can, text="Continue", command=lambda: self.connect_to_wifi(get_selected_network(), self.password_var.get()), pady=10, background="grey", foreground="white", font=controller.main_font)
+        connect_button = tk.Button(can, text="Connect", command=lambda: self.connect_to_wifi(get_selected_network(), self.password_var.get()), pady=10, background="grey", foreground="white", font=controller.main_font)
         connect_button.pack()
 
         # button to disconnect from the network
@@ -155,4 +157,11 @@ class WifiSetup(tk.Frame):
         print(ssid)
         subprocess.run(["nmcli", "connection", "delete", ssid])
         print("Disconnected from the network")
+
+        # delete countinue button
+        self.continue_button.destroy()
+
+        # update networks
+        self.update_networks()
+
 
