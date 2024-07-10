@@ -11,6 +11,17 @@ class Overview(tk.Frame):
         self.addAnimal_button = tk.Button(self, text="Add Animal", font=controller.main_font, command=lambda: controller.show_frame("AddAnimal"))
         self.addAnimal_button.pack()
 
+        # debug buttons to get to all main pages
+
+        self.registerStation_button = tk.Button(self, text="Register Station", font=controller.main_font, command=lambda: controller.show_frame("RegisterStation"))
+        self.registerStation_button.pack()
+
+        self.wifiSetup_button = tk.Button(self, text="Wifi Setup", font=controller.main_font, command=lambda: controller.show_frame("WifiSetup"))
+        self.wifiSetup_button.pack()
+
+        self.welcome_button = tk.Button(self, text="Welcome", font=controller.main_font, command=lambda: controller.show_frame("WelcomePage"))
+        self.welcome_button.pack()
+
         self.manualFeeding_button = tk.Button(self, text="Dispense 1 Portion", font=controller.main_font, command=lambda: controller.show_frame("ManualFeeding"))
 
         debug_button = tk.Button(self, text="Close", command=lambda: controller.destroy(), pady=10, font=controller.main_font)
