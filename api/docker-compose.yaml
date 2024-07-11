@@ -1,0 +1,59 @@
+version: "3.3"
+services:
+  #FastAPI
+  api:
+    container_name: "foodstation-api"
+    image: pylaa/foodstationapi
+    restart: always
+    environment:
+      #PostGreSQL Database Credentials
+      DB_USER: "foodAdmin"
+      DB_PASSWORD: "nu7fML74jQoqpi"
+      DB_IP: "postgres"
+      DB_NAME: "foodstation"
+
+      #Local API Configurations
+      API_IP: "0.0.0.0"
+      API_PORT: "23451"
+
+      #Hashing Algorithm and Secret Key
+      SECRET_KEY: "d0212db3d7b090cfd5f384b4b375c4bf"
+      ALGORITHM: "HS256"
+
+      ADMIN_USERNAME: "admin"
+      ADMIN_PASSWORD: "admin"
+      ADMIN_EMAIL: "admin@admin.com"
+      ADMIN_FORENAME: "admin"
+      ADMIN_SURNAME: "admin"
+
+      # True or False
+      DEBUG: "False" 
+    networks:
+      - foodstation
+    deploy:
+      replicas: 1
+
+
+  #PostgreSQL Database
+  db:
+    container_name: postgres
+    image: postgres:latest
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: "foodAdmin"
+      POSTGRES_PASSWORD: "nu7fML74jQoqpi"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    networks:
+      - foodstation
+    
+
+
+networks:
+  foodstation:
+
+volumes:
+  postgres:
+    driver: local
