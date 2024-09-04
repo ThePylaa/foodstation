@@ -109,7 +109,7 @@ void loop() {
   payload["weight"]   = getFoodbowlWeight();
   payload["humidity"] = getHumidity();
   payload["temp"]     = getCelcius();
-  payload["broken"]   = isBarrierBroken();
+  payload["broken"]   = isFoodLow();
   serializeJson(payload, Serial);
   //!!! It's impoortant that the Serial terminates the data with \n otherwise the
   //raspberry can't recognize the end of the payload -> code freezes
@@ -163,7 +163,7 @@ float getCelcius(){
 }
 
 //checks if light barrier is broken
-bool isBarrierBroken(){
+bool isFoodLow(){
   unsigned int distance = sensor.getDist();
   if(distance > 200){
     return false;
