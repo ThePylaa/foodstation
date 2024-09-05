@@ -128,11 +128,11 @@ void dispenseFood(){
       delay(4);
     }
     digitalWrite(MOTOR_IN1, LOW);
-    delay(1500);
+    delay(1250);
   }
   digitalWrite(MOTOR_IN1, LOW);
 
-  delay(1000);
+  delay(500);
   
   //got to next magnet
   while(digitalRead(MAGNETSWITCHPIN) == 1){
@@ -141,10 +141,10 @@ void dispenseFood(){
       delay(4);
     }
     digitalWrite(MOTOR_IN1, LOW);
-    delay(1500);
+    delay(1250);
   }
   digitalWrite(MOTOR_IN1, LOW);
-  Serial.println("Duispensed portion");
+  Serial.println("Dispensed portion");
 }
 
 //gets weight of the foodbowl in gramms 
