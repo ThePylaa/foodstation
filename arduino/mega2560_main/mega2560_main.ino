@@ -123,12 +123,12 @@ void loop() {
 void dispenseFood(){
   // go away from current magnet
   while(digitalRead(MAGNETSWITCHPIN) == 0){
-    for (int i=128; i<130; i++) {
+    for (int i=128; i<132; i++) {
       analogWrite(MOTOR_IN1, i);
       delay(4);
     }
     digitalWrite(MOTOR_IN1, LOW);
-    delay(1000);
+    delay(1500);
   }
   digitalWrite(MOTOR_IN1, LOW);
 
@@ -136,12 +136,12 @@ void dispenseFood(){
   
   //got to next magnet
   while(digitalRead(MAGNETSWITCHPIN) == 1){
-    for (int i=128; i<130; i++) {
+    for (int i=128; i<132; i++) {
       analogWrite(MOTOR_IN1, i);
       delay(4);
     }
     digitalWrite(MOTOR_IN1, LOW);
-    delay(1000);
+    delay(1500);
   }
   digitalWrite(MOTOR_IN1, LOW);
   Serial.println("Duispensed portion");
