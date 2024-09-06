@@ -9,7 +9,7 @@
 #define DOUT  36
 #define CLK  34
 HX711 scale;
-float calibration_factor = 2180;
+float calibration_factor = -2150;
 //---------
 
 //for DHT11
