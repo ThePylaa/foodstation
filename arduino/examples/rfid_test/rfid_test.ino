@@ -1,9 +1,12 @@
 #include <Arduino.h>
+#define RFIDRESET 28
 
 void setup() {
   Serial.begin(9600);
   Serial2.begin(9600);
-  Serial.println();
+  Serial.println("RFID");
+  pinMode(RFIDRESET, OUTPUT);
+  resetRFID();
 }
 
 void loop() {
@@ -37,7 +40,7 @@ void getRfid(char* getString){
 
   //when there was an input
   if (index != 0) {
-    
+
     for (int i = 1; i <= 10; i++) {
       asciiRfidCardNum[i - 1] = decToASCII(inputBuffer[i]);
     }
@@ -58,6 +61,7 @@ void getRfid(char* getString){
 
     }
   }
+  resetRFID();
 }
 
 char decToASCII(int dezimal) {
@@ -76,4 +80,10 @@ void reverseArray(char arr[], int length) {
     start++;
     end--;
   }
+}
+
+void resetRFID() {
+  digitalWrite(RFIDRESET, LOW);
+  delayMicroseconds(1000); // 1ms Low-Puls
+  digitalWrite(RFIDRESET, HIGH);
 }
