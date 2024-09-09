@@ -1,129 +1,123 @@
+// Necessary libraries for sensors and components
 #include "HX711.h"
 #include "DHT.h"
 #include <Rfid134.h>
 #include <ArduinoJson.h>
 #include <SharpDistSensor.h>
 
-
-//for HX711
+// HX711 (Weight sensor) setup
 #define DOUT  36
 #define CLK  34
 HX711 scale;
 float calibration_factor = -2150;
-//---------
 
-//for DHT11
+// DHT11 (Temperature & Humidity sensor) setup
 #define DHTPIN 30
 #define DHTTYPE DHT11
 DHT dht(DHTPIN, DHTTYPE);
-//----------
 
-//for stepper motor
+// Stepper motor setup
 #define MOTOR_IN1 22
 #define MAGNETSWITCHPIN 47
-//----------------
 
-//for lightbarrier
+// Light barrier sensor setup
 #define LIGHTBARRIERPIN A0
 #define MEDIANFILTERWINDOWSIZE 5
 SharpDistSensor sensor(LIGHTBARRIERPIN, MEDIANFILTERWINDOWSIZE);
-//----------------
 
-//for RFID
+// RFID setup
 #define RFIDRESET 28
-//----------------
 
-//global variables
+// Global variables
 String inputBuffer;
 JsonDocument payload;
 String rfidString;
-//-----------------
 
 void setup() {
-  //Motor Pin
+  // Motor and sensor pin configuration
   pinMode(MOTOR_IN1, OUTPUT);
   pinMode(MAGNETSWITCHPIN, INPUT);
 
-  //USB communivcation with raspi
+  // Serial communication setup
   Serial.begin(9600);
+  Serial2.begin(9600); // For RFID sensor
 
-  //Serial2 is used for the RFID sensor
-  Serial2.begin(9600);
-
-  //Setup for scale
+  // Scale setup
   scale.begin(DOUT, CLK);
   scale.tare();
   scale.set_scale(calibration_factor);
 
-  //Humidity / Celcius sensor
+  // DHT11 sensor initialization
   dht.begin();
 
-  // Set sensor model for light barrier
+  // Set light barrier sensor model
   sensor.setModel(SharpDistSensor::GP2Y0A41SK0F_5V_DS);
 
-  //RFID scanner setup
+  // Initialize RFID scanner
   pinMode(RFIDRESET, OUTPUT);
   resetRFID();
 }
 
 void loop() {
-  //checks for instructions from the raspi
-  while(Serial.available() > 0){
+  // Check for commands from Raspberry Pi
+  while (Serial.available() > 0) {
     char inChar = (char)Serial.read();
     
-    //for double digit dispenses
-    if (isDigit(inChar)){
+    // For double-digit dispense commands
+    if (isDigit(inChar)) {
       inputBuffer += inChar;
       inputBuffer += (char)Serial.read();
       serialFlush();
-    }else{
+    } else {
       inputBuffer += inChar;
     }
 
-    //if instructions were send, process them
-    if(inputBuffer != "" && inputBuffer.startsWith("dispense ")){
+    // Process "dispense" command
+    if (inputBuffer != "" && inputBuffer.startsWith("dispense ")) {
+      String numStr = inputBuffer.substring(9); 
+      int amount = numStr.toInt();
       
-      String numStr = inputBuffer.substring(9); // extracts part after "dispense "
-      int amount = numStr.toInt(); // convert extracted String to int
-      
-      for (int i = 0; i< amount; i++) {
+      // Dispense food portions
+      for (int i = 0; i < amount; i++) {
         dispenseFood();
         delay(260);
       }
     }
   }
 
+  // Handle RFID reading and sensor data
   char rfidRaw[14] = "----NORFID----";
   getRfid(rfidRaw);
   rfidString = "----NORFID----";
   for (int i = 0; i < 14; i++) {
-    if((rfidRaw[i] != NULL) && (rfidRaw[i] != '\0')){
+    if ((rfidRaw[i] != NULL) && (rfidRaw[i] != '\0')) {
       rfidString[i] = rfidRaw[i];
-    }else{
+    } else {
       rfidString = "----NORFID----"; 
       break;
     }
   }
   
-  payload["rfid"]     = rfidString;
-  payload["weight"]   = getFoodbowlWeight();
+  // Prepare and send JSON payload
+  payload["rfid"] = rfidString;
+  payload["weight"] = getFoodbowlWeight();
   payload["humidity"] = getHumidity();
-  payload["temp"]     = getCelcius();
-  payload["broken"]   = isFoodHigh();
+  payload["temp"] = getCelcius();
+  payload["broken"] = isFoodHigh();
   serializeJson(payload, Serial);
-  //!!! It's impoortant that the Serial terminates the data with \n otherwise the
-  //raspberry can't recognize the end of the payload -> code freezes
+
+  // Ensure Raspberry Pi recognizes end of the payload
   Serial.print("\n");
 
   inputBuffer = "";
   
-  delay(990); 
+  delay(990);
 }
 
-void dispenseFood(){
-  // go away from current magnet
-  while(digitalRead(MAGNETSWITCHPIN) == 0){
-    for (int i=128; i<132; i++) {
+void dispenseFood() {
+  // Move motor to dispense food
+  while (digitalRead(MAGNETSWITCHPIN) == 0) {
+    for (int i = 128; i < 132; i++) {
       analogWrite(MOTOR_IN1, i);
       delay(4);
     }
@@ -133,10 +127,10 @@ void dispenseFood(){
   digitalWrite(MOTOR_IN1, LOW);
 
   delay(500);
-  
-  //got to next magnet
-  while(digitalRead(MAGNETSWITCHPIN) == 1){
-    for (int i=128; i<132; i++) {
+
+  // Stop motor after dispensing
+  while (digitalRead(MAGNETSWITCHPIN) == 1) {
+    for (int i = 128; i < 132; i++) {
       analogWrite(MOTOR_IN1, i);
       delay(4);
     }
@@ -147,54 +141,51 @@ void dispenseFood(){
   Serial.println("Dispensed portion");
 }
 
-//gets weight of the foodbowl in gramms 
-int getFoodbowlWeight(){
+// Get the weight of the food bowl in grams
+int getFoodbowlWeight() {
   return scale.get_units();
 }
 
-//get humidity of DHT11
-float getHumidity(){
+// Get humidity from DHT11 sensor
+float getHumidity() {
   return dht.readHumidity();
 }
 
-//get degrees in °C from DHT11
-float getCelcius(){
+// Get temperature in °C from DHT11 sensor
+float getCelcius() {
   return dht.readTemperature();
 }
 
-//checks if light barrier is broken
-bool isFoodHigh(){
+// Check if light barrier is triggered (food level low)
+bool isFoodHigh() {
   unsigned int distance = sensor.getDist();
-  if(distance > 200){
-    return false;
-  }
-
-  return true;
+  return (distance <= 200);
 }
 
+// Reset RFID scanner
 void resetRFID() {
   digitalWrite(RFIDRESET, LOW);
-  delayMicroseconds(1000); // 1ms Low-Puls
+  delayMicroseconds(1000); // 1ms low pulse
   digitalWrite(RFIDRESET, HIGH);
 }
 
-void getRfid(char* getString){
+// Read RFID data
+void getRfid(char* getString) {
   char asciiRfidCardNum[10];
   char asciiRfidCountry[4];
   int newInt;
   int index = 0;
   int inputBuffer[30];
 
-  //read input from rfid sensor module
+  // Read from RFID sensor
   while (Serial2.available()) {
     newInt = Serial2.read();
     inputBuffer[index] = newInt;
-    index = index + 1;
+    index++;
   }
 
-  //when there was an input
+  // Process RFID data if available
   if (index > 1 && inputBuffer[0] == 0) {
-    
     for (int i = 2; i <= 11; i++) {
       asciiRfidCardNum[i - 2] = decToASCII(inputBuffer[i]);
     }
@@ -202,26 +193,28 @@ void getRfid(char* getString){
       asciiRfidCountry[i - 12] = decToASCII(inputBuffer[i]);
     }
 
-    //reverse arrays
+    // Reverse arrays
     reverseArray(asciiRfidCardNum, 10);
     reverseArray(asciiRfidCountry, 4);
 
+    // Combine RFID data
     for (int i = 0; i < 14; i++) {
-      if (i<10){
+      if (i < 10) {
         getString[i] = asciiRfidCardNum[i];
-      }else{
-        getString[i] = asciiRfidCountry[i-10];
+      } else {
+        getString[i] = asciiRfidCountry[i - 10];
       }
-
     }
   }
   resetRFID();
 }
 
+// Convert decimal to ASCII
 char decToASCII(int decimal) {
   return static_cast<char>(decimal);
 }
 
+// Reverse array
 void reverseArray(char arr[], int length) {
   int temp;
   int start = 0;
@@ -236,9 +229,9 @@ void reverseArray(char arr[], int length) {
   }
 }
 
-void serialFlush(){
-  while(Serial.available() > 0) {
+// Clear the serial input buffer
+void serialFlush() {
+  while (Serial.available() > 0) {
     char t = Serial.read();
   }
 }
-
