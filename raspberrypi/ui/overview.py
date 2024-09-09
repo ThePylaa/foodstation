@@ -1,3 +1,4 @@
+from arduinoCommunication import dispensePortion
 import tkinter as tk
 
 class Overview(tk.Frame):
@@ -22,7 +23,8 @@ class Overview(tk.Frame):
         self.welcome_button = tk.Button(self, text="Welcome", font=controller.main_font, command=lambda: controller.show_frame("WelcomePage"))
         self.welcome_button.pack()
 
-        self.manualFeeding_button = tk.Button(self, text="Dispense 1 Portion", font=controller.main_font, command=lambda: controller.show_frame("ManualFeeding"))
+        self.manualFeeding_button = tk.Button(self, text="Dispense 1 Portion", font=controller.main_font, command=lambda: dispensePortion(1))
+        self.manualFeeding_button.pack()
 
         debug_button = tk.Button(self, text="Close", command=lambda: controller.destroy(), pady=10, font=controller.main_font)
         debug_button.place(relx=1.0, rely=0.0, anchor="ne")
