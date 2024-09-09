@@ -4,7 +4,17 @@ import random
 import json
 
 # Open serial connection to arduino
-ser = serial.Serial('/dev/ttyACM0', 9600)
+serOpen = False
+while serOpen == False:
+    try:
+        ser = serial.Serial('/dev/ttyACM0', 9600)
+        serOpen = True
+    except:
+        print("Serial connection failed, retrying...")
+        time.sleep(1)
+        continue
+
+
 # Wait for connection to be established
 time.sleep(1)
 
