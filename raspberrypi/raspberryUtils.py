@@ -33,7 +33,7 @@ def startPicam():
 def updateServer():
     try:
         hum = getHumidity()  # Retrieve humidity from the sensor
-        broken = isBarrierBroke()  # Check if the food barrier is broken (container empty)
+        broken = isBarrierBroke()  # Check if the food barrier is broken (container full)
 
         # Send humidity data to the server
         res = requests.put(f"{api_host}/feedingstation/update_humidity", json={"feedingstation_id": station_uuid, "humidity": hum})
