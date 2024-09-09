@@ -18,6 +18,7 @@ DHT dht(DHTPIN, DHTTYPE);
 
 // Stepper motor setup
 #define MOTOR_IN1 22
+#define MOTOR_IN2 23
 #define MAGNETSWITCHPIN 47
 
 // Light barrier sensor setup
@@ -115,30 +116,79 @@ void loop() {
 }
 
 void dispenseFood() {
-  // Move motor to dispense food
+  int stuckCounter = 0;
+
+  // Move motor to dispense food (go away from current magnet)
   while (digitalRead(MAGNETSWITCHPIN) == 0) {
-    for (int i = 128; i < 132; i++) {
-      analogWrite(MOTOR_IN1, i);
-      delay(4);
+    if (stuckCounter < 6) {
+      // Attempt soft turns to move away from the magnet
+      for (int i = 128; i < 134; i++) {
+        analogWrite(MOTOR_IN1, i);
+        delay(4);
+      }
+      digitalWrite(MOTOR_IN1, LOW);
+      delay(1000);
+
+      stuckCounter++;
+    } else {
+      // After 6 attempts: reverse direction
+      for (int i = 128; i < 136; i++) {
+        analogWrite(MOTOR_IN2, i);  // Use MOTOR_IN2 to reverse direction
+        delay(4);
+      }
+      digitalWrite(MOTOR_IN2, LOW);
+      delay(1000);
+
+      // After reversing, try again in the original direction with more power
+      for (int i = 128; i < 138; i++) {
+        analogWrite(MOTOR_IN1, i);
+        delay(4);
+      }
+      digitalWrite(MOTOR_IN1, LOW);
+      delay(1000);
+
+      stuckCounter = 0;  // Reset counter after reversing
     }
-    digitalWrite(MOTOR_IN1, LOW);
-    delay(1250);
   }
   digitalWrite(MOTOR_IN1, LOW);
 
   delay(500);
 
-  // Stop motor after dispensing
+  // Move motor to next magnet (stop motor after dispensing)
+  stuckCounter = 0;
   while (digitalRead(MAGNETSWITCHPIN) == 1) {
-    for (int i = 128; i < 132; i++) {
-      analogWrite(MOTOR_IN1, i);
-      delay(4);
+    if (stuckCounter < 6) {
+      // Soft turn to move to the next magnet
+      for (int i = 128; i < 134; i++) {
+        analogWrite(MOTOR_IN1, i);
+        delay(4);
+      }
+      digitalWrite(MOTOR_IN1, LOW);
+      delay(1000);
+
+      stuckCounter++;
+    } else {
+      // After 6 attempts: reverse direction
+      for (int i = 128; i < 136; i++) {
+        analogWrite(MOTOR_IN2, i);  // Reverse direction with MOTOR_IN2
+        delay(4);
+      }
+      digitalWrite(MOTOR_IN2, LOW);
+      delay(1000);
+
+      // After reversing, try again in the original direction
+      for (int i = 128; i < 138; i++) {
+        analogWrite(MOTOR_IN1, i);
+        delay(4);
+      }
+      digitalWrite(MOTOR_IN1, LOW);
+      delay(1000);
+
+      stuckCounter = 0;  // Reset counter after reversing
     }
-    digitalWrite(MOTOR_IN1, LOW);
-    delay(1250);
   }
   digitalWrite(MOTOR_IN1, LOW);
-  Serial.println("Dispensed portion");
+  digitalWrite(MOTOR_IN2, LOW);
 }
 
 // Get the weight of the food bowl in grams
