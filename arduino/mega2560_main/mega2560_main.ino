@@ -235,12 +235,13 @@ void getRfid(char* getString) {
   }
 
   // Process RFID data if available
-  if (index > 1 && inputBuffer[0] == 0) {
-    for (int i = 2; i <= 11; i++) {
-      asciiRfidCardNum[i - 2] = decToASCII(inputBuffer[i]);
+  if (index != 0) {
+
+    for (int i = 1; i <= 10; i++) {
+      asciiRfidCardNum[i - 1] = decToASCII(inputBuffer[i]);
     }
-    for (int i = 12; i <= 15; i++) {
-      asciiRfidCountry[i - 12] = decToASCII(inputBuffer[i]);
+    for (int i = 11; i <= 14; i++) {
+      asciiRfidCountry[i - 11] = decToASCII(inputBuffer[i]);
     }
 
     // Reverse arrays
@@ -249,7 +250,7 @@ void getRfid(char* getString) {
 
     // Combine RFID data
     for (int i = 0; i < 14; i++) {
-      if (i < 10) {
+      if (i < 10){
         getString[i] = asciiRfidCardNum[i];
       } else {
         getString[i] = asciiRfidCountry[i - 10];
