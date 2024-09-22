@@ -20,45 +20,44 @@ void loop() {
   Serial.print(hs);
   Serial.println();
 
-  
   delay(500);
+  
 }
 
-void getRfid(char* getString){
+void getRfid(char* getString) {
   char asciiRfidCardNum[10];
   char asciiRfidCountry[4];
   int newInt;
   int index = 0;
   int inputBuffer[30];
 
-  //read input from rfid sensor module
+  // Read from RFID sensor
   while (Serial2.available()) {
     newInt = Serial2.read();
     inputBuffer[index] = newInt;
-    index = index + 1;
+    index++;
   }
 
-  //when there was an input
-  if (index != 0) {
-
-    for (int i = 1; i <= 10; i++) {
-      asciiRfidCardNum[i - 1] = decToASCII(inputBuffer[i]);
+  // Process RFID data if available
+  if (index > 1 && inputBuffer[0] == 0) {
+    for (int i = 2; i <= 11; i++) {
+      asciiRfidCardNum[i - 2] = decToASCII(inputBuffer[i]);
     }
-    for (int i = 11; i <= 14; i++) {
-      asciiRfidCountry[i - 11] = decToASCII(inputBuffer[i]);
+    for (int i = 12; i <= 15; i++) {
+      asciiRfidCountry[i - 12] = decToASCII(inputBuffer[i]);
     }
 
-    //reverse arrays
+    // Reverse arrays
     reverseArray(asciiRfidCardNum, 10);
     reverseArray(asciiRfidCountry, 4);
 
+    // Combine RFID data
     for (int i = 0; i < 14; i++) {
-      if (i<10){
+      if (i < 10) {
         getString[i] = asciiRfidCardNum[i];
-      }else{
-        getString[i] = asciiRfidCountry[i-10];
+      } else {
+        getString[i] = asciiRfidCountry[i - 10];
       }
-
     }
   }
   resetRFID();
