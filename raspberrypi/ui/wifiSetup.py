@@ -1,167 +1,196 @@
 import tkinter as tk
-from tkinter import *
+from ttkbootstrap import Style
+import ttkbootstrap as ttk
 import subprocess
 import os
 from raspberryUtils import hasInternet
 import time
+import threading
+from VKeyboard import VKeyboard 
 
-
-class WifiSetup(tk.Frame):
-
+class WifiSetup(ttk.Frame):
     def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
+        ttk.Frame.__init__(self, parent)
         self.controller = controller
-        can = Canvas(self, height=480, width=800)
-        can.place(relx=0.5, rely=0.5, anchor=CENTER)
-        #if already connected to a network, dont scan
-        if hasInternet():
-            available_networks = ["Already connected to a", "network, press", " 'Disconnect from current", "Wifi' and refresh to", "change Wifi"]
-            self.continue_button = tk.Button(can, text="Continue", command=lambda: self.controller.show_frame("RegisterStation"), pady=10, background="grey", foreground="white", font=controller.main_font)
-            self.continue_button.pack()
+        self.create_widgets()
+        self.VKeyboard = VKeyboard(self)  
+        self.keyboard_visible = False  
 
-        else:
-            available_networks = self.scan_wifi()
+        self.password_entry.bind("<FocusIn>", lambda event: self.show_keyboard())
+        self.password_entry.bind("<FocusOut>", lambda event: self.hide_keyboard())
 
+    def create_widgets(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(2, weight=1)
 
+        # Title
+        title = ttk.Label(self, text="Wi-Fi Setup", font=("Helvetica", 24, "bold"))
+        title.grid(row=0, column=0, pady=(20, 10), sticky="n")
 
-        label = tk.Label(can, text="Chose your Wifi Network:", font=controller.main_font, height=2, width=35)
-        label.pack(side="top", fill="x", pady=10)
+        # Status message
+        self.status_var = tk.StringVar()
+        self.status_label = ttk.Label(self, textvariable=self.status_var, font=("Helvetica", 14))
+        self.status_label.grid(row=1, column=0, pady=(0, 10))
 
-        # create canvas with scrollbar and listbox for the available networks
-        listCanavas = Canvas(can)
-        listCanavas.pack()
+        # Main content frame
+        content_frame = ttk.Frame(self)
+        content_frame.grid(row=2, column=0, sticky="nsew", padx=20, pady=10)
+        content_frame.grid_columnconfigure(0, weight=1)
+        content_frame.grid_rowconfigure(1, weight=1)
 
-        # create scrollbar
-        scrollbar = Scrollbar(listCanavas, orient="vertical")
-        scrollbar.pack(side=RIGHT, fill=Y)
+        # Network list label
+        network_label = ttk.Label(content_frame, text="Available Networks:", font=("Helvetica", 14))
+        network_label.grid(row=0, column=0, sticky="w", pady=(0, 5))
 
-        # create listbox for the available networks
-        self.network_list = Listbox(listCanavas, font=("Arial", 12), height=5)
-        self.network_list.pack(padx=10, pady=10)
+        # Network list with scrollbar
+        list_frame = ttk.Frame(content_frame)
+        list_frame.grid(row=1, column=0, sticky="nsew")
+        list_frame.grid_columnconfigure(0, weight=1)
+        list_frame.grid_rowconfigure(0, weight=1)
 
-        # attach listbox to scrollbar
-        self.network_list.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.network_list.yview)
+        self.network_list = ttk.Treeview(list_frame, columns=("ssid",), show="headings", selectmode="browse")
+        self.network_list.heading("ssid", text="SSID")
+        self.network_list.column("ssid", width=200)
+        self.network_list.grid(row=0, column=0, sticky="nsew")
 
-        # insert available networks into the listbox
-        for networks in available_networks:
-            self.network_list.insert(END, networks)
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.network_list.yview)
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self.network_list.configure(yscrollcommand=scrollbar.set)
 
-        # Function to get the selected network
-        def get_selected_network():
-            index = self.network_list.index(ACTIVE)
-            if index != -1:  # Check if a selection exists
-                for i in range(self.network_list.size()):
-                    self.network_list.itemconfig(i, {'bg': 'white'})
-                self.network_list.itemconfig(index, {'bg': 'light blue'})
-                return self.network_list.get(index)
-            else:
-                print("No network selected.")
-        
-        # Shows selected network in the listbox on FocusOut of Listbox
-        self.network_list.bind("<FocusOut>", lambda event: get_selected_network())
-
-        # button to update the list of available networks
-        global refreshImage
-        refreshImage = tk.PhotoImage(file="refresh.png")
-        update_button = tk.Button(can, text="Refresh Networks", image=refreshImage, command=self.update_networks)
-        update_button.pack()
-
-        # password input
+        # Password entry
+        self.password_frame = ttk.Frame(content_frame)
+        self.password_frame.grid(row=2, column=0, sticky="ew", pady=(10, 0))
+        self.password_frame.grid_columnconfigure(1, weight=1)
         self.password_var = tk.StringVar()
-        tk.Label(can, text="Password:", font=("Arial", 12), height=2, width=35).pack()
-        password_entry = tk.Entry(can, textvariable=self.password_var, show="*")
-        password_entry.pack()
-        password_entry.bind("<FocusIn>", lambda event: controller.show_keyboard())
-        password_entry.bind("<FocusOut>", lambda event: controller.hide_keyboard())
+        password_label = ttk.Label(self.password_frame, text="Password:", font=("Helvetica", 12))
+        password_label.grid(row=0, column=0, padx=(0, 10))
+        self.password_entry = tk.Entry(self.password_frame, textvariable=self.password_var, show="*", width=30)
+        self.password_entry.grid(row=0, column=1, sticky="ew")
 
+        # Buttons frame
+        button_frame = ttk.Frame(self)
+        button_frame.grid(row=3, column=0, pady=(20, 10))
 
-        # button to connect to the selected network
-        connect_button = tk.Button(can, text="Connect", command=lambda: self.connect_to_wifi(get_selected_network(), self.password_var.get()), pady=10, background="grey", foreground="white", font=controller.main_font)
-        connect_button.pack()
+        self.refresh_button = ttk.Button(button_frame, text="Refresh Networks", command=self.update_networks, bootstyle="info")
+        self.refresh_button.grid(row=0, column=0, padx=5)
 
-        # button to disconnect from the network
-        disconnect_button = tk.Button(can, text="Disconnect from current Wifi", command=lambda: self.disconnectFromWifi(), pady=10, background="grey", foreground="white", font=controller.main_font)
-        disconnect_button.pack()
+        self.connect_button = ttk.Button(button_frame, text="Connect", command=self.connect_to_selected_wifi, bootstyle="success")
+        self.connect_button.grid(row=0, column=1, padx=5)
 
-        #debug button to show the next page, placed at the right top corner
-        debug_button = tk.Button(self, text="Close", command=lambda: controller.destroy(), pady=10, background="grey", foreground="white", font=controller.main_font)
-        debug_button.pack(side="right", anchor=NE)
+        self.disconnect_button = ttk.Button(button_frame, text="Disconnect", command=self.disconnect_from_wifi, bootstyle="warning")
+        self.disconnect_button.grid(row=0, column=2, padx=5)
+
+        back_button = ttk.Button(self, text="Go Back", command=lambda: self.controller.show_frame("Overview"), bootstyle="danger")
+        back_button.grid(row=4, column=0, pady=(10, 20), sticky="se")
+
+        # Progress bar
+        self.progress = ttk.Progressbar(self, mode="indeterminate", bootstyle="primary-striped")
+        self.progress.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 20))
+
+        self.update_ui_for_connection_status()
+
+    def show_keyboard(self):
+        if not self.keyboard_visible:
+            self.VKeyboard.grid()  
+            self.keyboard_visible = True  
+
+    def hide_keyboard(self):
+        if self.keyboard_visible:
+            self.VKeyboard.grid_remove()  
+            self.keyboard_visible = False  
+
+    def update_ui_for_connection_status(self):
+        if hasInternet():
+            self.status_var.set("Connected to a network")
+            self.connect_button.config(state="disabled")
+            self.disconnect_button.config(state="normal")
+        else:
+            self.status_var.set("Not connected to any network")
+            self.connect_button.config(state="normal")
+            self.disconnect_button.config(state="disabled")
+        self.update_networks()
 
     def scan_wifi(self):
         if hasInternet():
-            return ["Already connected to a", "network, press", " 'Disconnect from current", "Wifi' and refresh to", "change Wifi"]
+            return ["Already connected"]
 
-        for i in range (3):
+        wifi_list = []
+        for i in range(3):
             try:
                 networks = subprocess.check_output(["iwlist", "wlan0", "scan"])
+                networks = networks.decode("utf-8").split("\n")
+                for line in networks:
+                    if "ESSID" in line:
+                        ssid = line.split('"')[1]
+                        if ssid and ssid not in wifi_list:
+                            wifi_list.append(ssid)
                 break
-            except:
-                print("Failed to scan networks")
+            except subprocess.CalledProcessError:
+                print(f"Failed to scan networks (attempt {i+1})")
                 time.sleep(1)
-                if i == 2:
-                    print("Failed to scan networks 3 times")
-                    return ["No networks found"]
-        networks = networks.decode("utf-8") # converts the bytes to a string
-        networks = networks.split("\n")     # splits the string into a list
-        wifi_list = []
-
-        for line in networks:
-            if "ESSID" in line:
-                #check if SSID is already in wifi_list
-                if line.split('"')[1] not in wifi_list:
-                    wifi_list.append(line.split('"')[1])
-                
-        return wifi_list
+        return wifi_list or ["No networks found"]
 
     def update_networks(self):
-        self.network_list.delete(0, END)     
-        self.network_list.insert(END, "Scanning for networks...")
+        self.network_list.delete(*self.network_list.get_children())
+        self.refresh_button.config(state="disabled")
+        self.progress.start()
+        self.status_var.set("Scanning for networks...")
         self.update()
 
-        new_networks = self.scan_wifi()
-        self.network_list.delete(0, END)
-        if not new_networks:
-            self.network_list.insert(END, "No networks found")
-        else:    
+        def scan_and_update():
+            new_networks = self.scan_wifi()
+            self.network_list.delete(*self.network_list.get_children())
             for ssid in new_networks:
-                self.network_list.insert(END, ssid)
+                self.network_list.insert("", "end", values=(ssid,))
+            self.refresh_button.config(state="normal")
+            self.progress.stop()
+            self.status_var.set("Scan complete")
 
-    def connect_to_wifi(self, ssid, password):
-        if not ssid:
-            print("Please select a network")
+        threading.Thread(target=scan_and_update, daemon=True).start()
+
+    def connect_to_selected_wifi(self):
+        selection = self.network_list.selection()
+        if not selection:
+            self.status_var.set("Please select a network")
             return
-        if not password:
-            print("Please enter a password")
+        ssid = self.network_list.item(selection[0])['values'][0]
+        password = self.password_var.get()
+
+        if ssid == "Already connected":
+            self.status_var.set("Already connected to a network")
             return
-        if ssid == "Already connected to a" or ssid == "network, press" or ssid == " 'Disconnect from current" or ssid == "Wifi' and refresh to" or ssid == "change Wifi":
-            print("Already connected to a network")
-            return
-        #try 3 times to connect to the network
-        for i in range(3):
-            os.system('sudo raspi-config nonint do_wifi_ssid_passphrase "' + ssid + '" ' + password )
-            print(f"Verbindung zu {ssid} mit Passwort {password} wird hergestellt...")
-            if hasInternet():
-                break
-        if hasInternet():
-            print("Connected to the network")
-            self.controller.show_frame("WifiSetupSuccess")
-            return
-        else:
-            print("Failed to connect to the network")
-            self.controller.show_frame("WifiSetupErrorPage")
 
-    def disconnectFromWifi(self):
-        #get currnent ssid
-        ssid = subprocess.check_output("iwgetid -r", shell=True).decode("utf-8").strip()
-        print(ssid)
-        subprocess.run(["nmcli", "connection", "delete", ssid])
-        print("Disconnected from the network")
+        self.progress.start()
+        self.status_var.set(f"Connecting to {ssid}...")
+        self.update()
 
-        # delete countinue button
-        self.continue_button.destroy()
+        def connect():
+            for i in range(3):
+                os.system(f'sudo raspi-config nonint do_wifi_ssid_passphrase "{ssid}" {password}')
+                time.sleep(5)  
+                if hasInternet():
+                    self.controller.show_frame("WifiSetupSuccess")
+                    break
+            else:
+                self.controller.show_frame("WifiSetupErrorPage")
+            self.progress.stop()
+            self.update_ui_for_connection_status()
 
-        # update networks
-        self.update_networks()
+        threading.Thread(target=connect, daemon=True).start()
 
+    def disconnect_from_wifi(self):
+        self.progress.start()
+        self.status_var.set("Disconnecting from network...")
+        self.update()
 
+        def disconnect():
+            try:
+                ssid = subprocess.check_output("iwgetid -r", shell=True).decode("utf-8").strip()
+                subprocess.run(["sudo", "nmcli", "connection", "delete", ssid])
+                time.sleep(2)  
+            except subprocess.CalledProcessError:
+                pass
+            self.progress.stop()
+            self.update_ui_for_connection_status()
+
+        threading.Thread(target=disconnect, daemon=True).start()
