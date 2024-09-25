@@ -1,30 +1,53 @@
-from arduinoCommunication import dispensePortion
 import tkinter as tk
+from ttkbootstrap import Style
+import ttkbootstrap as ttk
+from arduinoCommunication import dispensePortion
+from VKeyboard import VKeyboard
 
-class Overview(tk.Frame):
+class Overview(ttk.Frame):
     def __init__(self, parent, controller):
-        tk.Frame.__init__(self, parent)
+        ttk.Frame.__init__(self, parent)
         self.controller = controller
+        self.parent = parent  # Speichere die Referenz auf das Hauptfenster
 
-        self.label = tk.Label(self, text="Overview", font=controller.main_font)
-        self.label.pack(side="top", fill="x", pady=10)
+        # Übersicht-Label
+        self.label = ttk.Label(self, text="Overview", font=("Helvetica", 24, "bold"))
+        self.label.grid(row=0, sticky="ew", pady=20, padx=325)
 
-        self.addAnimal_button = tk.Button(self, text="Add Animal", font=controller.main_font, command=lambda: controller.show_frame("AddAnimal"))
-        self.addAnimal_button.pack()
+        # Frame für Buttons erstellen und konfigurieren
+        frame = ttk.Frame(self)
+        frame.grid(row=1, column=0, sticky="nsew")
 
-        # debug buttons to get to all main pages
+        buttons = [
+            ("Welcome", lambda: controller.show_frame("WelcomePage")),
+            ("Wifi Setup", lambda: controller.show_frame("WifiSetup")),
+            ("Register Station", lambda: controller.show_frame("RegisterStation")),
+            ("Add Animal", lambda: controller.show_frame("AddAnimal")),
+            ("Dispense a Portion", lambda: dispensePortion(1))
+        ]
 
-        self.registerStation_button = tk.Button(self, text="Register Station", font=controller.main_font, command=lambda: controller.show_frame("RegisterStation"))
-        self.registerStation_button.pack()
+        for row_index, (text, command) in enumerate(buttons):
+            btn = ttk.Button(frame, text=text, command=command)
+            btn.grid(row=row_index, column=0, sticky=tk.N + tk.S + tk.E + tk.W)
 
-        self.wifiSetup_button = tk.Button(self, text="Wifi Setup", font=controller.main_font, command=lambda: controller.show_frame("WifiSetup"))
-        self.wifiSetup_button.pack()
+        # Configure rows and columns for the grid
+        for row_index in range(5):
+            frame.grid_rowconfigure(row_index, weight=1)
+        frame.grid_columnconfigure(0, weight=1)
 
-        self.welcome_button = tk.Button(self, text="Welcome", font=controller.main_font, command=lambda: controller.show_frame("WelcomePage"))
-        self.welcome_button.pack()
+        # Close Button
+        close_button = ttk.Button(self, text="Close", bootstyle="danger", command=self.close_program)
+        close_button.grid(row=2, column=0, pady=20, sticky="ew")
 
-        self.manualFeeding_button = tk.Button(self, text="Dispense 1 Portion", font=controller.main_font, command=lambda: dispensePortion(1))
-        self.manualFeeding_button.pack()
+    def close_program(self):
+        print("Closing program...")
+        self.parent.quit()  # Beendet die mainloop
+        self.parent.destroy()  # Schließt das Fenster
 
-        debug_button = tk.Button(self, text="Close", command=lambda: controller.destroy(), pady=10, font=controller.main_font)
-        debug_button.place(relx=1.0, rely=0.0, anchor="ne")
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Overview(root, None)
+    app.grid(row=0, column=0, sticky="nsew")
+    root.grid_rowconfigure(0, weight=1)
+    root.grid_columnconfigure(0, weight=1)
+    root.mainloop()
