@@ -6,19 +6,21 @@ import os
 from raspberryUtils import hasInternet
 import time
 import threading
-from VKeyboard import VKeyboard 
 
 class WifiSetup(ttk.Frame):
     def __init__(self, parent, controller):
         ttk.Frame.__init__(self, parent)
         self.controller = controller
         self.create_widgets()
-        self.VKeyboard = VKeyboard(self)  
-        self.keyboard_visible = False  
 
-        self.password_entry.bind("<FocusIn>", lambda event: self.show_keyboard())
-        self.password_entry.bind("<FocusOut>", lambda event: self.hide_keyboard())
-
+    def show_keyboard(self):
+        # Start the matchbox keyboard
+        self.keyboard_process = subprocess.Popen(["matchbox-keyboard"])
+    
+    def hide_keyboard(self):
+        # Kill the matchbox keyboard process
+        subprocess.run(["pkill", "matchbox-keyboard"])
+        
     def create_widgets(self):
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(2, weight=1)
@@ -58,14 +60,20 @@ class WifiSetup(ttk.Frame):
         self.network_list.configure(yscrollcommand=scrollbar.set)
 
         # Password entry
-        self.password_frame = ttk.Frame(content_frame)
-        self.password_frame.grid(row=2, column=0, sticky="ew", pady=(10, 0))
-        self.password_frame.grid_columnconfigure(1, weight=1)
-        self.password_var = tk.StringVar()
-        password_label = ttk.Label(self.password_frame, text="Password:", font=("Helvetica", 12))
+        password_frame = ttk.Frame(content_frame)
+        password_frame.grid(row=2, column=0, sticky="ew", pady=(10, 0))
+        password_frame.grid_columnconfigure(1, weight=1)
+
+        password_label = ttk.Label(password_frame, text="Password:", font=("Helvetica", 12))
         password_label.grid(row=0, column=0, padx=(0, 10))
-        self.password_entry = tk.Entry(self.password_frame, textvariable=self.password_var, show="*", width=30)
+
+        self.password_var = tk.StringVar()
+        self.password_entry = ttk.Entry(password_frame, textvariable=self.password_var, show="*", width=30)
         self.password_entry.grid(row=0, column=1, sticky="ew")
+        
+        # Bind focus events to show/hide the on-screen keyboard
+        self.password_entry.bind("<FocusIn>", lambda event: self.controller.show_keyboard())
+        self.password_entry.bind("<FocusOut>", lambda event: self.controller.hide_keyboard())
 
         # Buttons frame
         button_frame = ttk.Frame(self)
@@ -88,16 +96,6 @@ class WifiSetup(ttk.Frame):
         self.progress.grid(row=5, column=0, sticky="ew", padx=20, pady=(0, 20))
 
         self.update_ui_for_connection_status()
-
-    def show_keyboard(self):
-        if not self.keyboard_visible:
-            self.VKeyboard.grid()  
-            self.keyboard_visible = True  
-
-    def hide_keyboard(self):
-        if self.keyboard_visible:
-            self.VKeyboard.grid_remove()  
-            self.keyboard_visible = False  
 
     def update_ui_for_connection_status(self):
         if hasInternet():
@@ -167,7 +165,7 @@ class WifiSetup(ttk.Frame):
         def connect():
             for i in range(3):
                 os.system(f'sudo raspi-config nonint do_wifi_ssid_passphrase "{ssid}" {password}')
-                time.sleep(5)  
+                time.sleep(5)  # Wait for connection attempt
                 if hasInternet():
                     self.controller.show_frame("WifiSetupSuccess")
                     break
@@ -187,7 +185,7 @@ class WifiSetup(ttk.Frame):
             try:
                 ssid = subprocess.check_output("iwgetid -r", shell=True).decode("utf-8").strip()
                 subprocess.run(["sudo", "nmcli", "connection", "delete", ssid])
-                time.sleep(2)  
+                time.sleep(2)  # Wait for disconnection
             except subprocess.CalledProcessError:
                 pass
             self.progress.stop()
