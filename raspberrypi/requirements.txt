@@ -227,6 +227,7 @@ types-tqdm==4.64
 types-tree-sitter==0.20
 types-tree-sitter-languages==1.5
 types-ttkthemes==3.2
+types-ttkbootstrap==1.10.1 
 types-typed-ast==1.5
 types-tzlocal==4.2
 types-ujson==5.5
